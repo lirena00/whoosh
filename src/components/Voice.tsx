@@ -9,7 +9,14 @@ import { motion, AnimatePresence } from "motion/react";
 
 export function Voice() {
   const [status, setStatus] = useState<"idle" | "recording" | "paused">("idle");
+  const [postStatus, setPoststatus] = useState<
+    "uploading" | "transcribing" | "doing magic" | "error" | ""
+  >("");
+  const [title, setTitle] = useState<string>("");
+  const [followups, setFollowups] = useState<string[]>([]);
+
   const [elapsed, setElapsed] = useState(0);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -39,6 +46,7 @@ export function Voice() {
     };
 
     mediaRecorder.onstop = async () => {
+      setPoststatus("uploading");
       stopTimer();
       const audioBlob = new Blob(audioChunksRef.current, {
         type: "audio/webm",
@@ -48,10 +56,72 @@ export function Voice() {
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
 
-      await fetch("/api/audio_processing", {
-        method: "POST",
-        body: formData,
-      });
+      try {
+        type UploadResult = {
+          success: boolean;
+          url: string;
+          size: number;
+        };
+
+        setPoststatus("uploading");
+        const uploadResponse = await fetch("/api/audio/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          console.error("Upload failed:", await uploadResponse.text());
+          return;
+        }
+
+        const uploadResult = (await uploadResponse.json()) as UploadResult;
+        console.log("Upload successful:", uploadResult);
+
+        const audioUrl = uploadResult.url;
+
+        setPoststatus("transcribing");
+
+        type TranscribeResult = { text: string };
+        const transcribeResponse = await fetch(
+          `/api/audio/transcribe?audiourl=${encodeURIComponent(audioUrl)}`,
+        );
+
+        if (!transcribeResponse.ok) {
+          console.error("Transcribe failed:", await transcribeResponse.text());
+          return;
+        }
+
+        const transcribeResult =
+          (await transcribeResponse.json()) as TranscribeResult;
+        console.log("Transcription:", transcribeResult.text);
+        setPoststatus("doing magic");
+
+        type FollowupResult = {
+          title: string;
+          refined_transcription: string;
+          followup: string[];
+        };
+        const stuff = {
+          idea: transcribeResult.text,
+          ...(followups.length > 0 && { previous_questions: followups }),
+          ...(title !== "" && { title }),
+        };
+        const followupResponse = await fetch(
+          `/api/audio/followup?stuff=${encodeURIComponent(JSON.stringify(stuff))}`,
+        );
+        if (!followupResponse.ok) {
+          console.error("followup failed:", await followupResponse.text());
+          return;
+        }
+
+        const followupResult =
+          (await followupResponse.json()) as FollowupResult;
+        console.log(followupResult);
+        setPoststatus("");
+      } catch (err) {
+        console.error("Error:", err);
+        setPoststatus("error");
+      }
     };
 
     mediaRecorderRef.current = mediaRecorder;
@@ -138,7 +208,7 @@ export function Voice() {
               {primary.label}
             </span>
           </motion.div>
-
+          {postStatus}
           <AnimatePresence>
             {status !== "idle" && (
               <motion.div

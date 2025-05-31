@@ -14,6 +14,10 @@ export const env = createEnv({
     AUTH_DISCORD_ID: z.string(),
     AUTH_DISCORD_SECRET: z.string(),
     DATABASE_URL: z.string().url(),
+    LLM_API_URL: z.string().url(),
+    BUNNY_REGION: z.string(),
+    BUNNY_STORAGE_ZONE_NAME: z.string(),
+    BUNNY_STORAGE_API_KEY: z.string(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -36,6 +40,10 @@ export const env = createEnv({
     AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
     AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
+    LLM_API_URL: process.env.LLM_API_URL,
+    BUNNY_REGION: process.env.BUNNY_REGION,
+    BUNNY_STORAGE_ZONE_NAME: process.env.BUNNY_STORAGE_ZONE_NAME,
+    BUNNY_STORAGE_API_KEY: process.env.BUNNY_STORAGE_API_KEY,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
   },
