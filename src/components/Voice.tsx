@@ -12,14 +12,16 @@ export function Voice() {
   const [postStatus, setPoststatus] = useState<
     "uploading" | "transcribing" | "doing magic" | "error" | ""
   >("");
-  const [title, setTitle] = useState<string>("");
-  const [followups, setFollowups] = useState<string[]>([]);
 
   const [elapsed, setElapsed] = useState(0);
+  const rerenderTrigger = useState(0)[1]; // For manual rerendering
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  const titleRef = useRef<string>("");
+  const followupsRef = useRef<string[]>([]);
 
   const startTimer = () => {
     timerRef.current = setInterval(() => {
@@ -63,7 +65,6 @@ export function Voice() {
           size: number;
         };
 
-        setPoststatus("uploading");
         const uploadResponse = await fetch("/api/audio/upload", {
           method: "POST",
           body: formData,
@@ -75,8 +76,7 @@ export function Voice() {
         }
 
         const uploadResult = (await uploadResponse.json()) as UploadResult;
-        console.log("Upload successful:", uploadResult);
-
+        console.log(uploadResult);
         const audioUrl = uploadResult.url;
 
         setPoststatus("transcribing");
@@ -93,7 +93,7 @@ export function Voice() {
 
         const transcribeResult =
           (await transcribeResponse.json()) as TranscribeResult;
-        console.log("Transcription:", transcribeResult.text);
+        console.log(transcribeResult);
         setPoststatus("doing magic");
 
         type FollowupResult = {
@@ -101,22 +101,35 @@ export function Voice() {
           refined_transcription: string;
           followup: string[];
         };
+
         const stuff = {
           idea: transcribeResult.text,
-          ...(followups.length > 0 && { previous_questions: followups }),
-          ...(title !== "" && { title }),
+          ...(followupsRef.current.length > 0 && {
+            previous_questions: followupsRef.current,
+          }),
+          ...(titleRef.current !== "" && { title: titleRef.current }),
         };
+
         const followupResponse = await fetch(
           `/api/audio/followup?stuff=${encodeURIComponent(JSON.stringify(stuff))}`,
         );
+
         if (!followupResponse.ok) {
           console.error("followup failed:", await followupResponse.text());
           return;
         }
+        console.log(followupsRef.current);
 
         const followupResult =
           (await followupResponse.json()) as FollowupResult;
         console.log(followupResult);
+        if (titleRef.current === "") {
+          titleRef.current = followupResult.title;
+        }
+
+        followupResult.followup.forEach((f) => followupsRef.current.push(f));
+
+        rerenderTrigger((n) => n + 1); // Force UI update if needed
         setPoststatus("");
       } catch (err) {
         console.error("Error:", err);
