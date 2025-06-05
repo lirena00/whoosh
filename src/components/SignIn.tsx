@@ -12,7 +12,7 @@ export function SignIn() {
   return (
     <Button
       onClick={handleSignIn}
-      className="flex items-center gap-2"
+      className="text-muted-foreground flex items-center gap-2"
       variant="outline"
     >
       <span>Sign in with Discord</span>

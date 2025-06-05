@@ -7,7 +7,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "motion/react";
 
-export function Voice() {
+type VoiceData = {
+  audioUrl: string;
+  transcription: string;
+  followups: string[];
+  title: string;
+};
+
+type VoiceProps = {
+  onDataUpdate: (data: VoiceData) => void;
+};
+
+export function Voice({ onDataUpdate }: VoiceProps) {
   const [status, setStatus] = useState<"idle" | "recording" | "paused">("idle");
   const [postStatus, setPoststatus] = useState<
     "uploading" | "transcribing" | "doing magic" | "error" | ""
@@ -128,8 +139,14 @@ export function Voice() {
         }
 
         followupResult.followup.forEach((f) => followupsRef.current.push(f));
-
-        rerenderTrigger((n) => n + 1); // Force UI update if needed
+        onDataUpdate({
+          audioUrl,
+          transcription:
+            followupResult.refined_transcription || transcribeResult.text,
+          followups: [...followupsRef.current],
+          title: titleRef.current,
+        });
+        // rerenderTrigger((n) => n + 1); // Force UI update if needed
         setPoststatus("");
       } catch (err) {
         console.error("Error:", err);
@@ -195,21 +212,23 @@ export function Voice() {
   const primary = getPrimaryAction();
 
   return (
-    <motion.div className="mx-auto w-full max-w-sm">
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center gap-4 py-6">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex flex-col items-center gap-2"
-          >
-            <Button size="icon" className="h-14 w-14" onClick={primary.action}>
+    <motion.div className="sticky bottom-4 z-20 mx-auto w-full max-w-sm">
+      <Card className="border-primary/20 bg-background/95 border-2 shadow-xl backdrop-blur-sm">
+        <CardContent className="">
+          {/* Main row with primary action and controls */}
+          <div className="flex items-center gap-3">
+            {/* Primary Action Button */}
+            <Button
+              size="icon"
+              className="h-12 w-12 shrink-0"
+              onClick={primary.action}
+            >
               <motion.div
                 animate={
                   status === "recording"
                     ? {
                         scale: [1, 1.1, 1],
-                        transition: { repeat: Infinity, duration: 1.5 },
+                        transition: { repeat: Infinity, duration: 1.2 },
                       }
                     : { scale: 1 }
                 }
@@ -217,43 +236,15 @@ export function Voice() {
                 {primary.icon}
               </motion.div>
             </Button>
-            <span className="text-muted-foreground text-xs">
-              {primary.label}
-            </span>
-          </motion.div>
-          {postStatus}
-          <AnimatePresence>
-            {status !== "idle" && (
-              <motion.div
-                key="secondary-controls"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex gap-3"
-              >
-                <Button
-                  size="icon"
-                  variant="destructive"
-                  onClick={stopRecording}
-                >
-                  <Square className="h-5 w-5" />
-                </Button>
-                <Button size="icon" variant="outline" onClick={clearRecording}>
-                  <Trash2 className="h-5 w-5" />
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
-          <AnimatePresence>
-            {status !== "idle" && (
-              <motion.div
-                key="timer"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <Badge variant={"outline"} className="font-mono text-sm">
+            {/* Status and Timer */}
+            <div className="min-w-0 flex-1">
+              {postStatus ? (
+                <Badge variant="secondary" className="animate-pulse text-xs">
+                  {postStatus}
+                </Badge>
+              ) : status !== "idle" ? (
+                <Badge variant="outline" className="font-mono text-xs">
                   <motion.span
                     animate={{
                       opacity: status === "recording" ? [1, 0.4, 1] : 1,
@@ -267,9 +258,42 @@ export function Voice() {
                   </motion.span>{" "}
                   {formatTime(elapsed)}
                 </Badge>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              ) : (
+                <span className="text-muted-foreground text-xs">
+                  Click to start recording
+                </span>
+              )}
+            </div>
+
+            {/* Secondary Controls */}
+            <AnimatePresence>
+              {status !== "idle" && (
+                <motion.div
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="flex gap-2"
+                >
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    onClick={stopRecording}
+                    className="h-8 w-8"
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={clearRecording}
+                    className="h-8 w-8"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </CardContent>
       </Card>
     </motion.div>
