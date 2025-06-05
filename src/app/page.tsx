@@ -5,7 +5,6 @@ import { SignIn } from "@/components/SignIn";
 import { VoiceMessage } from "@/components/VoiceMessage";
 import { Toolbar } from "@/components/Toolbar";
 import { FollowupQuestions } from "@/components/FollowupQuestions";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -45,14 +44,14 @@ export default function HomePage() {
 
     setMessages((prev) => [...prev, newMessage]);
     setCurrentTitle(data.title);
-    setAllFollowups(data.followups);
+    setAllFollowups((prev) => [...prev, ...data.followups]);
   };
 
   return (
     <div className="bg-background min-h-screen">
       {/* Header */}
       <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur-sm">
-        <div className="mx-auto max-w-4xl p-4">
+        <div className="mx-auto max-w-7xl p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-full">
@@ -65,8 +64,7 @@ export default function HomePage() {
                 {messages.length > 0 && (
                   <p className="text-muted-foreground flex items-center gap-1 text-sm">
                     <MessageSquare className="h-3 w-3" />
-                    {messages.length} conversation
-                    {messages.length !== 1 ? "s" : ""}
+                    {messages.length} message{messages.length !== 1 ? "s" : ""}
                   </p>
                 )}
               </div>
@@ -77,7 +75,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-4xl p-4 pb-24">
+      <main className="mx-auto max-w-7xl p-4 pb-32">
         {/* Welcome State */}
         {messages.length === 0 && (
           <motion.div
@@ -101,40 +99,48 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* Messages */}
-        <div className="space-y-4">
-          <AnimatePresence>
-            {messages.map((message, index) => (
-              <VoiceMessage
-                key={message.id}
-                audioUrl={message.audioUrl}
-                transcription={message.transcription}
-                timestamp={message.timestamp}
-                isLatest={index === messages.length - 1}
-              />
-            ))}
-          </AnimatePresence>
+        {/* Messages Layout - Responsive Grid */}
+        {messages.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+            {/* Messages Column - Takes 2/3 on large screens */}
+            <div className="space-y-4 lg:col-span-2">
+              <AnimatePresence>
+                {messages.map((message, index) => (
+                  <VoiceMessage
+                    key={message.id}
+                    audioUrl={message.audioUrl}
+                    transcription={message.transcription}
+                    timestamp={message.timestamp}
+                    isLatest={index === messages.length - 1}
+                  />
+                ))}
+              </AnimatePresence>
+              <div ref={messagesEndRef} />
+            </div>
 
-          {/* Follow-up Questions - Show after latest message */}
-          <AnimatePresence>
-            {allFollowups.length > 0 && messages.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="mt-6"
-              >
-                <FollowupQuestions followups={allFollowups} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div ref={messagesEndRef} />
-        </div>
+            {/* Followup Questions Sidebar - Takes 1/3 on large screens */}
+            <div className="lg:col-span-1">
+              <div className="lg:sticky lg:top-24">
+                <AnimatePresence>
+                  {allFollowups.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                    >
+                      <FollowupQuestions followups={allFollowups} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
+      {/* Floating Toolbar */}
       <div className="fixed right-0 bottom-0 left-0 p-4">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-7xl">
           <Toolbar onDataUpdate={handleVoiceDataUpdate} />
         </div>
       </div>
