@@ -1,11 +1,22 @@
 "use client";
 
-import { Mic, Pause, Play, Square, Trash2 } from "lucide-react";
+import {
+  Mic,
+  Pause,
+  Play,
+  Square,
+  Trash2,
+  Sparkles,
+  Download,
+  MoreHorizontal,
+} from "lucide-react";
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "motion/react";
+import { Separator } from "@/components/ui/separator";
 
 type VoiceData = {
   audioUrl: string;
@@ -16,9 +27,10 @@ type VoiceData = {
 
 type VoiceProps = {
   onDataUpdate: (data: VoiceData) => void;
+  onComplete?: () => void;
 };
 
-export function Voice({ onDataUpdate }: VoiceProps) {
+export function Voice({ onDataUpdate, onComplete }: VoiceProps) {
   const [status, setStatus] = useState<"idle" | "recording" | "paused">("idle");
   const [postStatus, setPoststatus] = useState<
     "uploading" | "transcribing" | "doing magic" | "error" | ""
@@ -148,6 +160,9 @@ export function Voice({ onDataUpdate }: VoiceProps) {
         });
         // rerenderTrigger((n) => n + 1); // Force UI update if needed
         setPoststatus("");
+        setTimeout(() => {
+          onComplete?.();
+        }, 1000);
       } catch (err) {
         console.error("Error:", err);
         setPoststatus("error");
@@ -212,90 +227,86 @@ export function Voice({ onDataUpdate }: VoiceProps) {
   const primary = getPrimaryAction();
 
   return (
-    <motion.div className="sticky bottom-4 z-20 mx-auto w-full max-w-sm">
-      <Card className="border-primary/20 bg-background/95 border-2 shadow-xl backdrop-blur-sm">
-        <CardContent className="">
-          {/* Main row with primary action and controls */}
-          <div className="flex items-center gap-3">
-            {/* Primary Action Button */}
-            <Button
-              size="icon"
-              className="h-12 w-12 shrink-0"
-              onClick={primary.action}
-            >
-              <motion.div
-                animate={
-                  status === "recording"
-                    ? {
-                        scale: [1, 1.1, 1],
-                        transition: { repeat: Infinity, duration: 1.2 },
-                      }
-                    : { scale: 1 }
-                }
+    <div className="space-y-4">
+      {/* Main row with primary action and controls */}
+      <div className="flex items-center gap-3">
+        {/* Primary Action Button */}
+        <Button
+          size="icon"
+          className="h-12 w-12 shrink-0"
+          onClick={primary.action}
+        >
+          <motion.div
+            animate={
+              status === "recording"
+                ? {
+                    scale: [1, 1.1, 1],
+                    transition: { repeat: Infinity, duration: 1.2 },
+                  }
+                : { scale: 1 }
+            }
+          >
+            {primary.icon}
+          </motion.div>
+        </Button>
+
+        {/* Status and Timer */}
+        <div className="min-w-0 flex-1">
+          {postStatus ? (
+            <Badge variant="secondary" className="animate-pulse text-xs">
+              {postStatus}
+            </Badge>
+          ) : status !== "idle" ? (
+            <Badge variant="outline" className="font-mono text-xs">
+              <motion.span
+                animate={{
+                  opacity: status === "recording" ? [1, 0.4, 1] : 1,
+                }}
+                transition={{
+                  duration: 1,
+                  repeat: status === "recording" ? Infinity : 0,
+                }}
               >
-                {primary.icon}
-              </motion.div>
-            </Button>
+                🔴
+              </motion.span>{" "}
+              {formatTime(elapsed)}
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground text-xs">
+              Click to start recording
+            </span>
+          )}
+        </div>
 
-            {/* Status and Timer */}
-            <div className="min-w-0 flex-1">
-              {postStatus ? (
-                <Badge variant="secondary" className="animate-pulse text-xs">
-                  {postStatus}
-                </Badge>
-              ) : status !== "idle" ? (
-                <Badge variant="outline" className="font-mono text-xs">
-                  <motion.span
-                    animate={{
-                      opacity: status === "recording" ? [1, 0.4, 1] : 1,
-                    }}
-                    transition={{
-                      duration: 1,
-                      repeat: status === "recording" ? Infinity : 0,
-                    }}
-                  >
-                    🔴
-                  </motion.span>{" "}
-                  {formatTime(elapsed)}
-                </Badge>
-              ) : (
-                <span className="text-muted-foreground text-xs">
-                  Click to start recording
-                </span>
-              )}
-            </div>
-
-            {/* Secondary Controls */}
-            <AnimatePresence>
-              {status !== "idle" && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: "auto" }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="flex gap-2"
-                >
-                  <Button
-                    size="icon"
-                    variant="destructive"
-                    onClick={stopRecording}
-                    className="h-8 w-8"
-                  >
-                    <Square className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={clearRecording}
-                    className="h-8 w-8"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        {/* Secondary Controls */}
+        <AnimatePresence>
+          {status !== "idle" && (
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              className="flex gap-2"
+            >
+              <Button
+                size="icon"
+                variant="destructive"
+                onClick={stopRecording}
+                className="h-8 w-8"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={clearRecording}
+                className="h-8 w-8"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
   );
 }

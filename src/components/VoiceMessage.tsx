@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause, Volume2, Clock } from "lucide-react";
+import { Play, Pause, Volume2, Clock, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 
 type VoiceMessageProps = {
   audioUrl: string;
@@ -111,8 +111,8 @@ export function VoiceMessage({
         <CardContent className="p-4">
           <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
-          {/* Header with timestamp */}
-          <div className="mb-3 flex items-center justify-between">
+          {/* Header */}
+          <div className="mb-4 flex items-center justify-between">
             <Badge variant="outline" className="text-xs">
               <Clock className="mr-1 h-3 w-3" />
               {formatTimestamp(timestamp)}
@@ -124,63 +124,85 @@ export function VoiceMessage({
             )}
           </div>
 
-          {/* Audio Controls */}
-          <div className="mb-4 flex items-center gap-3">
-            <Button
-              size="sm"
-              variant={isPlaying ? "default" : "outline"}
-              onClick={togglePlayPause}
-              disabled={!audioUrl}
-              className="shrink-0"
-            >
-              {isPlaying ? (
-                <Pause className="h-4 w-4" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-            </Button>
-
-            <div className="min-w-0 flex-1">
-              <Slider
-                value={[currentTime]}
-                max={duration || 100}
-                step={0.1}
-                onValueChange={handleTimeChange}
-                className="mb-1"
-                disabled={!duration}
-              />
-              <div className="text-muted-foreground flex justify-between text-xs">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            <div className="relative">
+          {/* Audio Player */}
+          <div className="bg-muted/50 mb-4 rounded-lg border p-3">
+            <div className="flex items-center gap-3">
+              {/* Play/Pause Button */}
               <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setShowVolumeControl(!showVolumeControl)}
-                className="shrink-0"
+                size="icon"
+                variant={isPlaying ? "default" : "outline"}
+                onClick={togglePlayPause}
+                disabled={!audioUrl}
+                className="h-10 w-10 shrink-0"
               >
-                <Volume2 className="h-4 w-4" />
+                <motion.div
+                  animate={isPlaying ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: isPlaying ? Infinity : 0,
+                  }}
+                >
+                  {isPlaying ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                </motion.div>
               </Button>
 
-              {showVolumeControl && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-background absolute top-full right-0 z-10 mt-1 rounded-md border p-2 shadow-lg"
+              {/* Progress and Time */}
+              <div className="min-w-0 flex-1">
+                <Slider
+                  value={[currentTime]}
+                  max={duration || 100}
+                  step={0.1}
+                  onValueChange={handleTimeChange}
+                  className="mb-2"
+                  disabled={!duration}
+                />
+                <div className="text-muted-foreground flex justify-between text-xs">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+
+              {/* Volume Control */}
+              <div className="relative">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setShowVolumeControl(!showVolumeControl)}
+                  className="h-8 w-8 shrink-0"
                 >
-                  <Slider
-                    value={[volume]}
-                    max={1}
-                    step={0.1}
-                    onValueChange={handleVolumeChange}
-                    className="w-20"
-                    orientation="horizontal"
-                  />
-                </motion.div>
-              )}
+                  <Volume2 className="h-4 w-4" />
+                </Button>
+
+                <AnimatePresence>
+                  {showVolumeControl && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                      className="bg-background absolute top-full right-0 z-10 mt-1 rounded-md border p-3 shadow-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Volume2 className="text-muted-foreground h-3 w-3" />
+                        <Slider
+                          value={[volume]}
+                          max={1}
+                          step={0.1}
+                          onValueChange={handleVolumeChange}
+                          className="w-20"
+                          orientation="horizontal"
+                        />
+                        <span className="text-muted-foreground w-8 text-xs">
+                          {Math.round(volume * 100)}%
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
 

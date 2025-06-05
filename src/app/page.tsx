@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Voice } from "@/components/Voice";
 import { SignIn } from "@/components/SignIn";
 import { VoiceMessage } from "@/components/VoiceMessage";
+import { Toolbar } from "@/components/Toolbar";
 import { FollowupQuestions } from "@/components/FollowupQuestions";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +49,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="dark bg-background min-h-screen">
+    <div className="bg-background min-h-screen">
       {/* Header */}
       <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur-sm">
         <div className="mx-auto max-w-4xl p-4">
@@ -133,10 +133,9 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Voice Input - Fixed at Bottom */}
       <div className="fixed right-0 bottom-0 left-0 p-4">
         <div className="mx-auto max-w-4xl">
-          <Voice onDataUpdate={handleVoiceDataUpdate} />
+          <Toolbar onDataUpdate={handleVoiceDataUpdate} />
         </div>
       </div>
     </div>
