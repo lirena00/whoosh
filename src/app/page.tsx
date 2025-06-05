@@ -50,19 +50,20 @@ export default function HomePage() {
   return (
     <div className="bg-background min-h-screen">
       {/* Header */}
-      <header className="bg-background/80 sticky top-0 z-30 border-b backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl p-4">
+      {/* Header */}
+      <header className="bg-background/95 sticky top-0 z-30 border-b backdrop-blur-sm">
+        <div className="mx-auto max-w-7xl px-4 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-full">
-                <Sparkles className="text-primary-foreground h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <div className="bg-primary flex h-6 w-6 items-center justify-center rounded-full">
+                <Sparkles className="text-primary-foreground h-3 w-3" />
               </div>
-              <div>
-                <h1 className="text-foreground text-xl font-bold">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-foreground truncate text-lg font-semibold">
                   {currentTitle || "Voice Assistant"}
                 </h1>
                 {messages.length > 0 && (
-                  <p className="text-muted-foreground flex items-center gap-1 text-sm">
+                  <p className="text-muted-foreground flex items-center gap-1 text-xs">
                     <MessageSquare className="h-3 w-3" />
                     {messages.length} message{messages.length !== 1 ? "s" : ""}
                   </p>
