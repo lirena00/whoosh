@@ -9,27 +9,6 @@ import { index, pgTableCreator, primaryKey } from "drizzle-orm/pg-core";
  */
 export const createTable = pgTableCreator((name) => `whoosh_${name}`);
 
-export const posts = createTable(
-  "post",
-  (d) => ({
-    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    name: d.varchar({ length: 256 }),
-    createdById: d
-      .varchar({ length: 255 })
-      .notNull()
-      .references(() => users.id),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .default(sql`CURRENT_TIMESTAMP`)
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-  }),
-  (t) => [
-    index("created_by_idx").on(t.createdById),
-    index("name_idx").on(t.name),
-  ],
-);
-
 export const users = createTable("user", (d) => ({
   id: d
     .varchar({ length: 255 })
@@ -40,12 +19,17 @@ export const users = createTable("user", (d) => ({
   email: d.varchar({ length: 255 }).notNull(),
   emailVerified: d.boolean(),
   image: d.varchar({ length: 255 }),
-  createdAt: d.timestamp({ withTimezone: true }).notNull(),
-  updatedAt: d.timestamp({ withTimezone: true }).notNull(),
+  createdAt: d.timestamp({ withTimezone: true }).defaultNow().notNull(),
+  updatedAt: d
+    .timestamp({ withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
   accounts: many(accounts),
+  capsules: many(capsules),
 }));
 
 export const accounts = createTable(
@@ -63,8 +47,12 @@ export const accounts = createTable(
     accessTokenExpiresAt: d.timestamp({ withTimezone: true }).notNull(),
     scope: d.varchar({ length: 255 }),
     idToken: d.text(),
-    createdAt: d.timestamp({ withTimezone: true }).notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).notNull(),
+    createdAt: d.timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updatedAt: d
+      .timestamp({ withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
   }),
   (t) => [index("account_user_id_idx").on(t.userId)],
 );
@@ -85,8 +73,12 @@ export const sessions = createTable(
     ipAddress: d.text(),
     userAgent: d.text(),
     expiresAt: d.timestamp({ mode: "date", withTimezone: true }).notNull(),
-    createdAt: d.timestamp({ withTimezone: true }).notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).notNull(),
+    createdAt: d.timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updatedAt: d
+      .timestamp({ withTimezone: true })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
   }),
   (t) => [index("t_user_id_idx").on(t.userId)],
 );
@@ -103,5 +95,94 @@ export const verifications = createTable("verification", (d) => ({
   createdAt: d.timestamp({ withTimezone: true }).$defaultFn(() => new Date()),
   updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
 }));
+
+export const capsules = createTable(
+  "capsule",
+  (d) => ({
+    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+    title: d.varchar({ length: 256 }),
+    createdById: d
+      .varchar({ length: 255 })
+      .notNull()
+      .references(() => users.id),
+    createdAt: d.timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
+    followupPool: d.json().default([]).notNull(),
+    // summary: d.text(),
+    // todos: d.json(),
+    // tone: d.varchar({ length: 64 }),
+    // userDraftStyle: d.text(),
+  }),
+  (t) => [
+    index("created_by_idx").on(t.createdById),
+    index("title_idx").on(t.title),
+  ],
+);
+
+export const voiceInteractions = createTable("voice_interaction", (d) => ({
+  id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+  capsuleId: d
+    .integer()
+    .notNull()
+    .references(() => capsules.id, { onDelete: "cascade" }),
+  audioUrl: d.varchar({ length: 1024 }),
+  transcription: d.text(),
+  createdAt: d.timestamp({ withTimezone: true }).defaultNow().notNull(),
+  updatedAt: d
+    .timestamp({ withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+
+  // embedding: d.vector("float4", { dimensions: 1536 }),
+}));
+
+export const followupReplies = createTable("followup_reply", (d) => ({
+  id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+  capsuleId: d
+    .integer()
+    .notNull()
+    .references(() => capsules.id, { onDelete: "cascade" }),
+  followupQuestion: d.text().notNull(),
+  audioUrl: d.varchar({ length: 1024 }),
+  transcription: d.text(),
+  createdAt: d.timestamp({ withTimezone: true }).defaultNow().notNull(),
+  updatedAt: d
+    .timestamp({ withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+
+  // embedding: d.vector("float4", { dimensions: 1536 }),
+}));
+
+export const capsulesRelations = relations(capsules, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [capsules.createdById],
+    references: [users.id],
+  }),
+  voiceInteractions: many(voiceInteractions),
+  followupReplies: many(followupReplies),
+}));
+
+export const voiceInteractionsRelations = relations(
+  voiceInteractions,
+  ({ one }) => ({
+    capsule: one(capsules, {
+      fields: [voiceInteractions.capsuleId],
+      references: [capsules.id],
+    }),
+  }),
+);
+
+export const followupRepliesRelations = relations(
+  followupReplies,
+  ({ one }) => ({
+    capsule: one(capsules, {
+      fields: [followupReplies.capsuleId],
+      references: [capsules.id],
+    }),
+  }),
+);
 
 export const schema = { users, sessions, accounts, verifications };
