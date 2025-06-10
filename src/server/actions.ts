@@ -1,6 +1,6 @@
 "use server";
 
-import { users } from "./db/schema";
+import { followupRepliesRelations, users } from "./db/schema";
 import { and, eq, sql, asc, desc } from "drizzle-orm";
 import { z } from "zod";
 import * as crypto from "crypto";
@@ -101,6 +101,47 @@ export async function addVoiceInteraction(
       .insert(voiceInteractions)
       .values({
         capsuleId,
+        audioUrl,
+        transcription,
+      })
+      .returning();
+
+    revalidatePath(`/capsule/${capsuleId}`);
+    return { success: true, data: newInteraction };
+  } catch (error) {
+    console.error("Failed to add voice interaction:", error);
+    return { success: false, error: "Failed to add voice interaction" };
+  }
+}
+
+export async function addFollowupInteraction(
+  capsuleId: number,
+  audioUrl: string,
+  transcription: string,
+  followupQuestion: string,
+) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user) {
+    throw new Error("Unauthorized");
+  }
+  const userId = session.user.id;
+  try {
+    // Verify capsule ownership
+    const capsule = await db.query.capsules.findFirst({
+      where: eq(capsules.id, capsuleId),
+    });
+
+    if (!capsule || capsule.createdById !== userId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const [newInteraction] = await db
+      .insert(followupReplies)
+      .values({
+        capsuleId,
+        followupQuestion,
         audioUrl,
         transcription,
       })
